@@ -3,4 +3,4 @@
 * Step2. Creat some control buttons
 * Step3. Read the CSV file to a table.
 
-    ![sample design](https://github.com/wiki-yu/wavform-analysis-PyQt5-GUI/tree/master/images/design sample.png)
+    ![sample design](https://github.com/wiki-yu/wavform-analysis-PyQt5-GUI/tree/master/images/design_sample.png)
