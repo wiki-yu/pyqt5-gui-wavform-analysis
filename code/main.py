@@ -1,8 +1,10 @@
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 import pandas as pd
 
 from PandasModel import PandasModel
+from CustomGraph import CustomGraph
 
 
 class Widget(QtWidgets.QWidget):
@@ -32,4 +34,6 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     w = Widget()
     w.show()
+    myGraph = CustomGraph()
+    myGraph.showMyAnimation()
     sys.exit(app.exec_())
