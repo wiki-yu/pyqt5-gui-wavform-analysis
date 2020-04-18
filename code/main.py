@@ -6,6 +6,7 @@ from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 import random
+from PandasModel import PandasModel
 
 def onclick(event):
     global clicks
@@ -15,12 +16,12 @@ def process_csv_data(file_name):
     df = pd.read_csv(file_name)
 
 class ApplicationWindow(QtWidgets.QMainWindow):
-    def __init__(self, file_name):
+    def __init__(self):
         super(ApplicationWindow, self).__init__()
         self.title = 'Venlilator waveform real-time'
         self.setWindowTitle(self.title)
 
-        self.file_name = file_name
+        # self.file_name = file_name
 
         self.main = QtWidgets.QWidget()
         self.setCentralWidget(self.main)
@@ -36,22 +37,26 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         '''
 
         # the "time series plot" setting
-        dynamic_canvas = FigureCanvas(self.figure)
+        dynamic_canvas = FigureCanvas(Figure(figsize=(10, 10)))
+        self._static_ax = dynamic_canvas.figure.subplots()
         self.plot1()
 
 
         # the "buttons and labels" setting
         button_stop = QtWidgets.QPushButton('Stop', self)
-        button_stop.clicked.connect(self._timer.stop)
+        # button_stop.clicked.connect(self._timer.stop)
         button_start = QtWidgets.QPushButton('Start', self)
-        button_start.clicked.connect(self._timer.start)
+        # button_start.clicked.connect(self._timer.start)
 
         # the "table" setting
-        self.table_clicks = QtWidgets.QTableWidget(0, 2)
+        myData = pd.read_csv("data.csv");
+        model = PandasModel(myData)
+        self.table_clicks = QtWidgets.QTableView(self)
         self.table_clicks.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        self.table_clicks.setModel(model)
 
         # the "other widget" setting, make this part blank for now
-        other_widget = QtWidgets.QLabel("Other widgets", font=QtGui.QFont("Times", 60, QtGui.QFont.Bold), alignment=QtCore.Qt.AlignCenter)
+        # other_widget = QtWidgets.QLabel("Other widgets", font=QtGui.QFont("Times", 60, QtGui.QFont.Bold), alignment=QtCore.Qt.AlignCenter)
 
 
         # *************** layouts design ******************#
@@ -59,7 +64,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QGridLayout(self.main)
         layout.addWidget(self.table_clicks, 0, 0)
         layout.addWidget(dynamic_canvas, 0, 1)
-        layout.addWidget(other_widget, 1, 1)
+
 
         # set up for the area of "button and labels"
         button_layout = QtWidgets.QVBoxLayout()
@@ -73,39 +78,53 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(1, 2)
 
-        process_csv_data(file_name)
+        # other_widget = QtWidgets.QWidget()
+        other_widgets = QtWidgets.QGridLayout();
+
+        button_1 = QtWidgets.QPushButton('1', self)
+        button_2 = QtWidgets.QPushButton('2', self)
+        button_3 = QtWidgets.QPushButton('3', self)
+        button_4 = QtWidgets.QPushButton('4', self)
+        other_widgets.addWidget(button_1, 0, 0)
+        other_widgets.addWidget(button_2, 0, 1)
+        other_widgets.addWidget(button_3, 1, 0)
+        other_widgets.addWidget(button_4, 1, 1)
+        layout.addLayout(other_widgets, 1, 1)
+        # process_csv_data(file_name)
 
     def plot1(self):
         ''' plot some random stuff '''
         # random data
         data = [random.random() for i in range(10)]
+        self._static_ax.plot(data, '-o', color='b')
+        self._static_ax.figure.canvas.draw()
         # instead of ax.hold(False)
-        self.figure.clear()
+        # self.figure.clear()
         # create an axis
-        ax = self.figure.add_subplot(111)
+        # ax = self.figure.add_subplot(111)
         # discards the old graph
         # ax.hold(False) # deprecated, see above
         # plot data
-        ax.plot(data, '*-')
+        # ax.plot(data, '*-')
         # refresh canvas
-        self.canvas.draw()
+        # self.canvas.draw()
 
-    def update_window(self):
-        self._dynamic_ax.clear()
-        global x, y1, y2, y3, N, count_iter, last_number_clicks
-        x.append(x[count_iter] + 0.01)
-        y1.append(np.random.random())
-        idx_inf = max([count_iter-N, 0])
-        if last_number_clicks < len(clicks):
-            for new_click in clicks[last_number_clicks:(len(clicks))]:
-                rowPosition = self.table_clicks.rowCount()
-                self.table_clicks.insertRow(rowPosition)
-                self.table_clicks.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(new_click)))
-                self.table_clicks.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem("Descripcion"))
-            last_number_clicks = len(clicks)
-        self._dynamic_ax.plot(x[idx_inf:count_iter], y1[idx_inf:count_iter], '-o', color='b')
-        count_iter += 1
-        self._dynamic_ax.figure.canvas.draw()
+    # def update_window(self):
+    #     self._dynamic_ax.clear()
+    #     global x, y1, y2, y3, N, count_iter, last_number_clicks
+    #     x.append(x[count_iter] + 0.01)
+    #     y1.append(np.random.random())
+    #     idx_inf = max([count_iter-N, 0])
+    #     if last_number_clicks < len(clicks):
+    #         for new_click in clicks[last_number_clicks:(len(clicks))]:
+    #             rowPosition = self.table_clicks.rowCount()
+    #             self.table_clicks.insertRow(rowPosition)
+    #             self.table_clicks.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(new_click)))
+    #             self.table_clicks.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem("Descripcion"))
+    #         last_number_clicks = len(clicks)
+    #     self._dynamic_ax.plot(x[idx_inf:count_iter], y1[idx_inf:count_iter], '-o', color='b')
+    #     count_iter += 1
+    #     self._dynamic_ax.figure.canvas.draw()
 
 if __name__ == "__main__":
     pressed_key = {}
@@ -117,6 +136,6 @@ if __name__ == "__main__":
     count_iter = 0
 
     qapp = QtWidgets.QApplication(sys.argv)
-    app = ApplicationWindow('data.csv')
+    app = ApplicationWindow()
     app.show()
     sys.exit(qapp.exec_())
