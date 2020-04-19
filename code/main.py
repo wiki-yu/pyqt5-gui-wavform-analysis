@@ -116,6 +116,16 @@ class ApplicationWindow(QMainWindow):
         super(ApplicationWindow, self).__init__()
         self.setWindowTitle('Venlilator Waveform Analysis')
 
+        self.file_menu = QMenu('&File', self)
+        self.file_menu.addAction('&Quit', self.fileQuit,
+                QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
+        self.menuBar().addMenu(self.file_menu)
+        self.help_menu = QMenu('&Help', self)
+        self.menuBar().addSeparator()
+        self.menuBar().addMenu(self.help_menu)
+
+        self.help_menu.addAction('&About', self.about)
+
         self.main = QWidget()
         self.setCentralWidget(self.main)
         layout = QtWidgets.QGridLayout(self.main)
@@ -124,6 +134,7 @@ class ApplicationWindow(QMainWindow):
 
         # plot 1
         simple_canvas = FigureCanvas(Figure(figsize=(10, 5)))
+        # simple_canvas.axes.grid(color='lightgray', linewidth=.5, linestyle=':')
         self._static_ax = simple_canvas.figure.subplots()
         self.plot_basic(arr_resp_data, peaks_list, troughs_list)
 
@@ -131,7 +142,7 @@ class ApplicationWindow(QMainWindow):
         dynamic_canvas = FigureCanvas(Figure(figsize=(10, 5)))
         self._dynamic_ax = dynamic_canvas.figure.subplots()
         self._dynamic_ax.grid()
-        self._timer = dynamic_canvas.new_timer(100, [(self.plot_dynamic, (), {})])
+        self._timer = dynamic_canvas.new_timer(1000, [(self.plot_dynamic, (), {})])
         self._timer.start()
 
         # try fancy plot......
@@ -150,23 +161,25 @@ class ApplicationWindow(QMainWindow):
         button_next = QtWidgets.QPushButton('Next')
         button_undo = QtWidgets.QPushButton('Undo')
         button_reject = QtWidgets.QPushButton('Reject')
-        button_reject.clicked.connect(self.reset_plot)
+        # button_reject.clicked.connect(self.plot_table_triggerd(arr_resp_data, peaks_list, troughs_list))
+        button_reject.clicked.connect(lambda: self.plot_table_triggerd(arr_resp_data, peaks_list, troughs_list))
 
         #********************** the "table" setting ********************#
         model = PandasModel(df_table)
         self.table_clicks = QtWidgets.QTableView(self)
         self.table_clicks.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.table_clicks.setModel(model)
+        self.table_clicks.clicked.connect(self.viewClicked)
 
         # ********************** the "stats widgets" setting ********************#
-        button_1 = QtWidgets.QPushButton('STAT1', self)
-        button_2 = QtWidgets.QPushButton('STAT2', self)
-        button_3 = QtWidgets.QPushButton('STAT3', self)
-        button_4 = QtWidgets.QPushButton('STAT4', self)
-        button_5 = QtWidgets.QPushButton('STAT5', self)
-        button_6 = QtWidgets.QPushButton('STAT6', self)
-        button_7 = QtWidgets.QPushButton('STAT7', self)
-        button_8 = QtWidgets.QPushButton('STAT8', self)
+        self.button_1 = QtWidgets.QPushButton('STAT1', self)
+        self.button_2 = QtWidgets.QPushButton('STAT2', self)
+        self.button_3 = QtWidgets.QPushButton('STAT3', self)
+        self.button_4 = QtWidgets.QPushButton('STAT4', self)
+        self.button_5 = QtWidgets.QPushButton('STAT5', self)
+        self.button_6 = QtWidgets.QPushButton('STAT6', self)
+        self.button_7 = QtWidgets.QPushButton('STAT7', self)
+        self.button_8 = QtWidgets.QPushButton('STAT8', self)
 
         # *************** layouts design ******************#
         # the layouts of the table
@@ -186,14 +199,14 @@ class ApplicationWindow(QMainWindow):
         # the layout of stats widgets
         stats_widgets = QtWidgets.QGridLayout();
         stats_widgets = QtWidgets.QGridLayout();
-        stats_widgets.addWidget(button_1, 0, 0)
-        stats_widgets.addWidget(button_2, 0, 1)
-        stats_widgets.addWidget(button_3, 1, 0)
-        stats_widgets.addWidget(button_4, 1, 1)
-        stats_widgets.addWidget(button_5, 2, 0)
-        stats_widgets.addWidget(button_6, 2, 1)
-        stats_widgets.addWidget(button_7, 3, 0)
-        stats_widgets.addWidget(button_8, 3, 1)
+        stats_widgets.addWidget(self.button_1, 0, 0)
+        stats_widgets.addWidget(self.button_2, 0, 1)
+        stats_widgets.addWidget(self.button_3, 1, 0)
+        stats_widgets.addWidget(self.button_4, 1, 1)
+        stats_widgets.addWidget(self.button_5, 2, 0)
+        stats_widgets.addWidget(self.button_6, 2, 1)
+        stats_widgets.addWidget(self.button_7, 3, 0)
+        stats_widgets.addWidget(self.button_8, 3, 1)
         layout.addLayout(stats_widgets, 1, 1)
 
         # the ratio of the width of the columns (the  grid has two columns)
@@ -208,26 +221,32 @@ class ApplicationWindow(QMainWindow):
         self._static_ax.figure.canvas.draw()
 
     def plot_table_triggerd(self, arr_resp_data, peaks_list, troughs_list):
-        self._static_ax.clear()
+        print("test***********")
+        self._timer.stop()
+        self._dynamic_ax.clear()
         x = np.arange(peaks_list[1] - peaks_list[0])
-        self._static_ax.plot(x, arr_resp_data[peaks_list[0]:peaks_list[1]], '-o', color='b')
-        self._static_ax.figure.canvas.draw()
+        self._dynamic_ax.plot(x, arr_resp_data[peaks_list[0]:peaks_list[1]], '-o', color='b')
+        self._dynamic_ax.figure.canvas.draw()
 
     def plot_dynamic(self):
-        self._dynamic_ax.clear()
         global counter
         len_shown = 400
         if counter < len_shown:
+            self._dynamic_ax.clear()
             self._dynamic_ax.plot(arr_resp_data[:counter], '-', color='b')
-            # button_1.setText("test")
+            self.button_1.setText(str(counter))
+        elif len(arr_resp_data) - counter > len_shown:
+            self._dynamic_ax.clear()
+            self._dynamic_ax.plot(arr_resp_data[counter-len_shown : counter], '-', color='b')
         else:
-            if len(arr_resp_data) - counter > len_shown:
-                self._dynamic_ax.plot(arr_resp_data[counter-len_shown : counter], '-', color='b')
-            # else:
-            #     self._staic_ax.plot(arr_resp_data[counter - len_shown: counter], '-', color='b')
-        counter += 3
+            self._timer.stop()
+        counter += 5
         self._dynamic_ax.figure.canvas.draw()
 
+    def viewClicked(self, clickedIndex):
+        row = clickedIndex.row()
+        model = clickedIndex.model()
+        print(row, model)
 
 if __name__ == "__main__":
 
