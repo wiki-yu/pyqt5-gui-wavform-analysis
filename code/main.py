@@ -2,7 +2,7 @@ import sys
 import matplotlib
 import numpy as np
 import pandas as pd
-matplotlib.use("Qt5Agg")
+# matplotlib.use("Qt5Agg")
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMenu, QVBoxLayout, QSizePolicy, QMessageBox, QWidget, QLabel, QFrame
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -47,10 +47,10 @@ from PandasModel import PandasModel
 #         #bar chart
 #         y2 = [2,5,4,7,6,5,4]
 #         self.axes2.bar(x, y2,width=.8,color='g')
-
-def onclick(event):
-    global clicks
-    clicks.append(event.xdata)
+#
+# def onclick(event):
+#     global clicks
+#     clicks.append(event.xdata)
 
 def find_peaks(seg_arr, coef):
     mean = np.mean(seg_arr)
@@ -148,8 +148,9 @@ class ApplicationWindow(QMainWindow):
         #**************** the "buttons and labels" setting ***************#
         button_previous = QtWidgets.QPushButton('Previous')
         button_next = QtWidgets.QPushButton('Next')
-        button_udo = QtWidgets.QPushButton('Undo')
+        button_undo = QtWidgets.QPushButton('Undo')
         button_reject = QtWidgets.QPushButton('Reject')
+        button_reject.clicked.connect(self.reset_plot)
 
         #********************** the "table" setting ********************#
         model = PandasModel(df_table)
@@ -172,14 +173,14 @@ class ApplicationWindow(QMainWindow):
         layout.addWidget(self.table_clicks, 0, 0)
         # the layouts of the picture boxes
         pictures_layout = QtWidgets.QGridLayout();
-        pictures_layout.addWidget(simple_canvas, 0, 0)
-        pictures_layout.addWidget(dynamic_canvas, 1, 0)
+        pictures_layout.addWidget(dynamic_canvas, 0, 0)
+        pictures_layout.addWidget(simple_canvas, 1, 0)
         layout.addLayout(pictures_layout, 0, 1)
         # the layout of "button and labels"
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(button_previous)
         button_layout.addWidget(button_next)
-        button_layout.addWidget(button_udo)
+        button_layout.addWidget(button_undo)
         button_layout.addWidget(button_reject)
         layout.addLayout(button_layout, 1, 0)
         # the layout of stats widgets
@@ -218,13 +219,15 @@ class ApplicationWindow(QMainWindow):
         len_shown = 400
         if counter < len_shown:
             self._dynamic_ax.plot(arr_resp_data[:counter], '-', color='b')
+            # button_1.setText("test")
         else:
             if len(arr_resp_data) - counter > len_shown:
                 self._dynamic_ax.plot(arr_resp_data[counter-len_shown : counter], '-', color='b')
-            else:
-                self._staic_ax.plot(arr_resp_data[counter - len_shown: counter], '-', color='b')
+            # else:
+            #     self._staic_ax.plot(arr_resp_data[counter - len_shown: counter], '-', color='b')
         counter += 3
         self._dynamic_ax.figure.canvas.draw()
+
 
 if __name__ == "__main__":
 
