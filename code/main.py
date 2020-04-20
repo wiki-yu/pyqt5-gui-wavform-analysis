@@ -10,6 +10,7 @@ from matplotlib.figure import Figure
 from matplotlib.dates import num2date, date2num
 import datetime
 from PandasModel import PandasModel
+from collections import Counter
 
 # class GraphCanvas(FigureCanvas):
 #     def __init__(self, parent=None, width=1, height=1, dpi=100):
@@ -86,6 +87,26 @@ def find_troughs(seg_arr, coef):
         troughs_list.append(minimum)
     return troughs_list
 
+def most_frequent(List):
+    return max(set(List), key = List.count)
+
+def locate_onsets_offsets(arr_resp_data, peaks_list, troughs_list):
+    length = min(len(peaks_list), len(troughs_list))
+    count = 1
+    breath = []
+    breaths = []
+    exh_onsets = []
+    inh_onsets = []
+    if peaks_list[0] > troughs_list[0]:
+        for i in range(length):
+            exh_onset = peaks_list[i] + (troughs_list[i] - peaks_list[i]) / 2
+            exh_onsets.append(exh_onset)
+            inh_section = arr_resp_data[troughs_list[i] : peaks_list[i]]
+            inh_onset = most_frequent(inh_section) + troughs_list[i]
+            inh_onsets.append(inh_onset)
+    df_table = pd.DataFrame(breaths, columns=["Breath No.", "Onset", "Offset"])
+    return df_table
+
 def obtain_onsets_offsets(arr_resp_data, peaks_list, troughs_list):
     length = min(len(peaks_list), len(troughs_list))
     count = 1
@@ -114,17 +135,16 @@ def process_dataframe(df):
 class ApplicationWindow(QMainWindow):
     def __init__(self):
         super(ApplicationWindow, self).__init__()
-        self.setWindowTitle('Venlilator Waveform Analysis')
 
-        self.file_menu = QMenu('&File', self)
-        self.file_menu.addAction('&Quit', self.fileQuit,
-                QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
-        self.menuBar().addMenu(self.file_menu)
-        self.help_menu = QMenu('&Help', self)
-        self.menuBar().addSeparator()
-        self.menuBar().addMenu(self.help_menu)
-
-        self.help_menu.addAction('&About', self.about)
+        # self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        # self.setWindowTitle("application main window")
+        # self.file_menu = QMenu('&File', self)
+        # self.file_menu.addAction('&Quit', self.fileQuit, QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
+        # self.menuBar().addMenu(self.file_menu)
+        # self.help_menu = QMenu('&Help', self)
+        # self.menuBar().addSeparator()
+        # self.menuBar().addMenu(self.help_menu)
+        # self.help_menu.addAction('&About', self.about)
 
         self.main = QWidget()
         self.setCentralWidget(self.main)
@@ -142,7 +162,7 @@ class ApplicationWindow(QMainWindow):
         dynamic_canvas = FigureCanvas(Figure(figsize=(10, 5)))
         self._dynamic_ax = dynamic_canvas.figure.subplots()
         self._dynamic_ax.grid()
-        self._timer = dynamic_canvas.new_timer(1000, [(self.plot_dynamic, (), {})])
+        self._timer = dynamic_canvas.new_timer(100, [(self.plot_dynamic, (), {})])
         self._timer.start()
 
         # try fancy plot......
@@ -160,9 +180,10 @@ class ApplicationWindow(QMainWindow):
         button_previous = QtWidgets.QPushButton('Previous')
         button_next = QtWidgets.QPushButton('Next')
         button_undo = QtWidgets.QPushButton('Undo')
-        button_reject = QtWidgets.QPushButton('Reject')
+        button_check = QtWidgets.QPushButton('Check')
+        button_ai = QtWidgets.QPushButton('AI Functions')
         # button_reject.clicked.connect(self.plot_table_triggerd(arr_resp_data, peaks_list, troughs_list))
-        button_reject.clicked.connect(lambda: self.plot_table_triggerd(arr_resp_data, peaks_list, troughs_list))
+        button_check.clicked.connect(lambda: self.plot_table_triggerd(arr_resp_data, peaks_list, troughs_list))
 
         #********************** the "table" setting ********************#
         model = PandasModel(df_table)
@@ -172,14 +193,14 @@ class ApplicationWindow(QMainWindow):
         self.table_clicks.clicked.connect(self.viewClicked)
 
         # ********************** the "stats widgets" setting ********************#
-        self.button_1 = QtWidgets.QPushButton('STAT1', self)
-        self.button_2 = QtWidgets.QPushButton('STAT2', self)
-        self.button_3 = QtWidgets.QPushButton('STAT3', self)
-        self.button_4 = QtWidgets.QPushButton('STAT4', self)
-        self.button_5 = QtWidgets.QPushButton('STAT5', self)
-        self.button_6 = QtWidgets.QPushButton('STAT6', self)
-        self.button_7 = QtWidgets.QPushButton('STAT7', self)
-        self.button_8 = QtWidgets.QPushButton('STAT8', self)
+        self.button_1 = QtWidgets.QPushButton('Breathing rate: 14', self)
+        self.button_2 = QtWidgets.QPushButton('Minute ventilation: 4500 (ml)', self)
+        self.button_3 = QtWidgets.QPushButton('Average breath interval: 230', self)
+        self.button_4 = QtWidgets.QPushButton('Breaths with pauses % : 65%', self)
+        self.button_5 = QtWidgets.QPushButton('Average flow volume：350', self)
+        self.button_6 = QtWidgets.QPushButton('Breathing rate variation：1.23', self)
+        self.button_7 = QtWidgets.QPushButton('Duty cycles variation：0.24', self)
+        self.button_8 = QtWidgets.QPushButton('Average tidal volume: 400', self)
 
         # *************** layouts design ******************#
         # the layouts of the table
@@ -190,14 +211,14 @@ class ApplicationWindow(QMainWindow):
         pictures_layout.addWidget(simple_canvas, 1, 0)
         layout.addLayout(pictures_layout, 0, 1)
         # the layout of "button and labels"
-        button_layout = QtWidgets.QHBoxLayout()
-        button_layout.addWidget(button_previous)
-        button_layout.addWidget(button_next)
-        button_layout.addWidget(button_undo)
-        button_layout.addWidget(button_reject)
+        button_layout = QtWidgets.QGridLayout()
+        button_layout.addWidget(button_previous, 0, 0)
+        button_layout.addWidget(button_next, 0, 1)
+        button_layout.addWidget(button_undo, 0, 2)
+        button_layout.addWidget(button_check, 0, 3)
+        button_layout.addWidget(button_ai, 1, 0, 1, 4)
         layout.addLayout(button_layout, 1, 0)
         # the layout of stats widgets
-        stats_widgets = QtWidgets.QGridLayout();
         stats_widgets = QtWidgets.QGridLayout();
         stats_widgets.addWidget(self.button_1, 0, 0)
         stats_widgets.addWidget(self.button_2, 0, 1)
@@ -234,7 +255,7 @@ class ApplicationWindow(QMainWindow):
         if counter < len_shown:
             self._dynamic_ax.clear()
             self._dynamic_ax.plot(arr_resp_data[:counter], '-', color='b')
-            self.button_1.setText(str(counter))
+            # self.button_1.setText(str(counter))
         elif len(arr_resp_data) - counter > len_shown:
             self._dynamic_ax.clear()
             self._dynamic_ax.plot(arr_resp_data[counter-len_shown : counter], '-', color='b')
@@ -259,6 +280,6 @@ if __name__ == "__main__":
     # the interface part
     app = QApplication(sys.argv)
     aw = ApplicationWindow()
-    aw.setWindowTitle("Ventilator test V1.0")
+    aw.setWindowTitle("Ventilator Waveform Analysis V1.0")
     aw.show()
     sys.exit(app.exec_())
