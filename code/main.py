@@ -88,24 +88,34 @@ def find_troughs(seg_arr, coef):
     return troughs_list
 
 def most_frequent(List):
+    List = list(List.flatten())
     return max(set(List), key = List.count)
 
 def locate_onsets_offsets(arr_resp_data, peaks_list, troughs_list):
     length = min(len(peaks_list), len(troughs_list))
     count = 1
-    breath = []
-    breaths = []
+    breath_num = []
     exh_onsets = []
     inh_onsets = []
-    if peaks_list[0] > troughs_list[0]:
+    ave_val = np.mean(arr_resp_data)
+    if peaks_list[0] < troughs_list[0]:
         for i in range(length):
-            exh_onset = peaks_list[i] + (troughs_list[i] - peaks_list[i]) / 2
+            breath_num.append(count)
+            exh_section = arr_resp_data[peaks_list[i] : troughs_list[i]]
+            exh_onset = np.argmin(np.abs(exh_section - ave_val)) + peaks_list[i]
             exh_onsets.append(exh_onset)
-            inh_section = arr_resp_data[troughs_list[i] : peaks_list[i]]
-            inh_onset = most_frequent(inh_section) + troughs_list[i]
+            inh_section = arr_resp_data[troughs_list[i] : peaks_list[i+1]]
+            #inh_onset = np.argmin(np.abs(inh_section - most_frequent(inh_section))) + troughs_list[i]
+            inh_onset = np.argmin(np.abs(inh_section - ave_val)) + troughs_list[i]-3
             inh_onsets.append(inh_onset)
-    df_table = pd.DataFrame(breaths, columns=["Breath No.", "Onset", "Offset"])
-    return df_table
+            count += 1
+
+    df_table = pd.DataFrame(list(zip(breath_num, exh_onsets, inh_onsets)),
+                 columns=['Breath No.', 'onset', 'offset'])
+    exh_onsets = [int(x) for x in exh_onsets]
+    inh_onsets = [int(x) for x in inh_onsets]
+    print(inh_onsets)
+    return df_table, exh_onsets, inh_onsets
 
 def obtain_onsets_offsets(arr_resp_data, peaks_list, troughs_list):
     length = min(len(peaks_list), len(troughs_list))
@@ -156,7 +166,7 @@ class ApplicationWindow(QMainWindow):
         simple_canvas = FigureCanvas(Figure(figsize=(10, 5)))
         # simple_canvas.axes.grid(color='lightgray', linewidth=.5, linestyle=':')
         self._static_ax = simple_canvas.figure.subplots()
-        self.plot_basic(arr_resp_data, peaks_list, troughs_list)
+        self.plot_basic(arr_resp_data, peaks_list, troughs_list, exh_onsets, inh_onsets)
 
         # plot 2
         dynamic_canvas = FigureCanvas(Figure(figsize=(10, 5)))
@@ -234,11 +244,13 @@ class ApplicationWindow(QMainWindow):
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(1, 2)
 
-    def plot_basic(self, arr_resp_data, peaks_list, troughs_list):
+    def plot_basic(self, arr_resp_data, peaks_list, troughs_list, exh_onsets, inh_onsets):
         ''' plot some random stuff '''
         self._static_ax.plot(arr_resp_data, '-', color='b')
         self._static_ax.plot(peaks_list, arr_resp_data[peaks_list], "ro", markersize=3)
         self._static_ax.plot(troughs_list, arr_resp_data[troughs_list], "go", markersize=3)
+        self._static_ax.plot(exh_onsets, arr_resp_data[exh_onsets], "co", markersize=3)
+        self._static_ax.plot(inh_onsets, arr_resp_data[inh_onsets], "mo", markersize=3)
         self._static_ax.figure.canvas.draw()
 
     def plot_table_triggerd(self, arr_resp_data, peaks_list, troughs_list):
@@ -251,14 +263,26 @@ class ApplicationWindow(QMainWindow):
 
     def plot_dynamic(self):
         global counter
-        len_shown = 400
-        if counter < len_shown:
+        show_len = 400
+
+        if counter < show_len:
             self._dynamic_ax.clear()
             self._dynamic_ax.plot(arr_resp_data[:counter], '-', color='b')
-            # self.button_1.setText(str(counter))
-        elif len(arr_resp_data) - counter > len_shown:
+            peaks_plot_list = [i for i in peaks_list if i < counter]
+            troughs_plot_list = [i for i in troughs_list if i < counter]
+            self._dynamic_ax.plot(peaks_plot_list, arr_resp_data[peaks_plot_list], "ro", markersize=3)
+            self._dynamic_ax.plot(troughs_plot_list, arr_resp_data[troughs_plot_list], "go", markersize=3)
+            #self._dynamic_ax.plot(exh_onsets, arr_resp_data[exh_onsets], "co", markersize=3)
+            #self._dynamic_ax.plot(inh_onsets, arr_resp_data[inh_onsets], "mo", markersize=3)
+        elif len(arr_resp_data) - counter > show_len:
             self._dynamic_ax.clear()
-            self._dynamic_ax.plot(arr_resp_data[counter-len_shown : counter], '-', color='b')
+            self._dynamic_ax.plot(arr_resp_data[counter-show_len : counter], '-', color='b')
+            peaks_plot_list = [i for i in peaks_list if i < counter and i > counter-show_len]
+            troughs_plot_list = [i for i in troughs_list if i < counter and i > counter-show_len]
+            self._dynamic_ax.plot(peaks_plot_list, arr_resp_data[peaks_plot_list], "ro", markersize=3)
+            self._dynamic_ax.plot(troughs_plot_list, arr_resp_data[troughs_plot_list], "go", markersize=3)
+            #self._dynamic_ax.plot(exh_onsets, arr_resp_data[exh_onsets], "co", markersize=3)
+            #self._dynamic_ax.plot(inh_onsets, arr_resp_data[inh_onsets], "mo", markersize=3)
         else:
             self._timer.stop()
         counter += 5
@@ -274,7 +298,7 @@ if __name__ == "__main__":
     # the respiratory data from CSV file
     df = pd.read_csv("sample1.csv")
     arr_resp_data, peaks_list, troughs_list = process_dataframe(df)
-    df_table = obtain_onsets_offsets(arr_resp_data, peaks_list, troughs_list)
+    df_table, exh_onsets, inh_onsets = locate_onsets_offsets(arr_resp_data, peaks_list, troughs_list)
     counter = 100
 
     # the interface part
