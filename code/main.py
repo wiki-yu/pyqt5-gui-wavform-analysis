@@ -191,9 +191,9 @@ class ApplicationWindow(QMainWindow):
         button_next = QtWidgets.QPushButton('Next')
         button_undo = QtWidgets.QPushButton('Undo')
         button_check = QtWidgets.QPushButton('Check')
-        button_ai = QtWidgets.QPushButton('AI Functions')
+        button_ai = QtWidgets.QPushButton('AI Diagnosis')
         # button_reject.clicked.connect(self.plot_table_triggerd(arr_resp_data, peaks_list, troughs_list))
-        button_check.clicked.connect(lambda: self.plot_table_triggerd(arr_resp_data, peaks_list, troughs_list))
+        button_check.clicked.connect(lambda: self.plot_basic(arr_resp_data, peaks_list, troughs_list, exh_onsets, inh_onsets))
 
         #********************** the "table" setting ********************#
         model = PandasModel(df_table)
@@ -245,7 +245,9 @@ class ApplicationWindow(QMainWindow):
         layout.setColumnStretch(1, 2)
 
     def plot_basic(self, arr_resp_data, peaks_list, troughs_list, exh_onsets, inh_onsets):
-        ''' plot some random stuff '''
+
+        self._static_ax.clear()
+        self._static_ax.axes.grid(color='lightgray', linewidth=1, linestyle=':')
         self._static_ax.plot(arr_resp_data, '-', color='b')
         self._static_ax.plot(peaks_list, arr_resp_data[peaks_list], "ro", markersize=3)
         self._static_ax.plot(troughs_list, arr_resp_data[troughs_list], "go", markersize=3)
@@ -253,45 +255,85 @@ class ApplicationWindow(QMainWindow):
         self._static_ax.plot(inh_onsets, arr_resp_data[inh_onsets], "mo", markersize=3)
         self._static_ax.figure.canvas.draw()
 
-    def plot_table_triggerd(self, arr_resp_data, peaks_list, troughs_list):
-        print("test***********")
-        self._timer.stop()
-        self._dynamic_ax.clear()
-        x = np.arange(peaks_list[1] - peaks_list[0])
-        self._dynamic_ax.plot(x, arr_resp_data[peaks_list[0]:peaks_list[1]], '-o', color='b')
-        self._dynamic_ax.figure.canvas.draw()
+    def plot_table_triggerd(self, arr_resp_data, peaks_list, troughs_list, exh_onsets, inh_onsets, start, end):
+
+        self._static_ax.clear()
+        start_exp = start -50
+        end_exp = end +50
+        x = np.arange(start_exp, end_exp)
+
+        peaks_plot_list = [i for i in peaks_list if i < end_exp and i > start_exp]
+        troughs_plot_list = [i for i in troughs_list if i < end_exp and i > start_exp]
+        exh_onsets_plot_list = [i for i in exh_onsets if i < end_exp and i > start_exp]
+        inh_onsets_plot_list = [i for i in inh_onsets if i < end_exp and i > start_exp]
+        self._static_ax.axes.grid(color='lightgray', linewidth=1, linestyle=':')
+        self._static_ax.plot(x, arr_resp_data[start_exp: end_exp], 'o-', markersize=3)
+        self._static_ax.plot(peaks_plot_list, arr_resp_data[peaks_plot_list], "ro", markersize=3)
+        self._static_ax.plot(troughs_plot_list, arr_resp_data[troughs_plot_list], "go", markersize=3)
+        self._static_ax.plot(exh_onsets_plot_list, arr_resp_data[exh_onsets_plot_list], "co", markersize=3)
+        self._static_ax.plot(inh_onsets_plot_list, arr_resp_data[inh_onsets_plot_list], "mo", markersize=3)
+        self._static_ax.figure.canvas.draw()
 
     def plot_dynamic(self):
+
         global counter
         show_len = 400
 
         if counter < show_len:
+
             self._dynamic_ax.clear()
             self._dynamic_ax.plot(arr_resp_data[:counter], '-', color='b')
+
             peaks_plot_list = [i for i in peaks_list if i < counter]
             troughs_plot_list = [i for i in troughs_list if i < counter]
+            exh_onsets_plot_list = [i for i in exh_onsets if i < counter]
+            inh_onsets_plot_list = [i for i in inh_onsets if i < counter]
+            self._dynamic_ax.axes.grid(color='lightgray', linewidth=1, linestyle=':')
             self._dynamic_ax.plot(peaks_plot_list, arr_resp_data[peaks_plot_list], "ro", markersize=3)
             self._dynamic_ax.plot(troughs_plot_list, arr_resp_data[troughs_plot_list], "go", markersize=3)
-            #self._dynamic_ax.plot(exh_onsets, arr_resp_data[exh_onsets], "co", markersize=3)
-            #self._dynamic_ax.plot(inh_onsets, arr_resp_data[inh_onsets], "mo", markersize=3)
+            self._dynamic_ax.plot(exh_onsets_plot_list, arr_resp_data[exh_onsets_plot_list], "co", markersize=3)
+            self._dynamic_ax.plot(inh_onsets_plot_list, arr_resp_data[inh_onsets_plot_list], "mo", markersize=3)
+
+            self.button_1.setText("exhale onset: " + str(exh_onsets_plot_list[len(exh_onsets_plot_list)-1]))
+            self.button_2.setText("inhale onset: " + str(inh_onsets_plot_list[len(inh_onsets_plot_list)-1]))
+
         elif len(arr_resp_data) - counter > show_len:
+
             self._dynamic_ax.clear()
             self._dynamic_ax.plot(arr_resp_data[counter-show_len : counter], '-', color='b')
+
             peaks_plot_list = [i for i in peaks_list if i < counter and i > counter-show_len]
             troughs_plot_list = [i for i in troughs_list if i < counter and i > counter-show_len]
-            self._dynamic_ax.plot(peaks_plot_list, arr_resp_data[peaks_plot_list], "ro", markersize=3)
-            self._dynamic_ax.plot(troughs_plot_list, arr_resp_data[troughs_plot_list], "go", markersize=3)
-            #self._dynamic_ax.plot(exh_onsets, arr_resp_data[exh_onsets], "co", markersize=3)
-            #self._dynamic_ax.plot(inh_onsets, arr_resp_data[inh_onsets], "mo", markersize=3)
+            exh_onsets_plot_list = [i for i in exh_onsets if i < counter and i > counter-show_len]
+            inh_onsets_plot_list = [i for i in inh_onsets if i < counter and i > counter-show_len]
+            self.button_1.setText("exhale onset: " + str(exh_onsets_plot_list[len(exh_onsets_plot_list)-1]))
+            self.button_2.setText("inhale onset: " + str(inh_onsets_plot_list[len(inh_onsets_plot_list)-1]))
+
+            peaks_plot_list_new_cord = [i-(counter-show_len ) for i in peaks_plot_list]
+            troughs_plot_list_new_cord = [i-(counter-show_len ) for i in troughs_plot_list]
+            exh_onsets_plot_list_new_cord = [i-(counter-show_len ) for i in exh_onsets_plot_list]
+            inh_onsets_plot_list_new_cord = [i-(counter-show_len ) for i in inh_onsets_plot_list]
+
+            self._dynamic_ax.axes.grid(color='lightgray', linewidth=1, linestyle=':')
+            self._dynamic_ax.plot(peaks_plot_list_new_cord, arr_resp_data[peaks_plot_list], "ro", markersize=3)
+            self._dynamic_ax.plot(troughs_plot_list_new_cord, arr_resp_data[troughs_plot_list], "go", markersize=3)
+            self._dynamic_ax.plot(exh_onsets_plot_list_new_cord, arr_resp_data[exh_onsets_plot_list], "co", markersize=3)
+            self._dynamic_ax.plot(inh_onsets_plot_list_new_cord, arr_resp_data[inh_onsets_plot_list], "mo", markersize=3)
+
         else:
             self._timer.stop()
-        counter += 5
+
+        counter += 1
         self._dynamic_ax.figure.canvas.draw()
 
     def viewClicked(self, clickedIndex):
+
         row = clickedIndex.row()
-        model = clickedIndex.model()
-        print(row, model)
+        start = df_table.iloc[row:row+1, 1:2].values.flatten()[0]
+        end = df_table.iloc[row:row+1, 2:3].values.flatten()[0]
+        print(start, end)
+        self.plot_table_triggerd(arr_resp_data, peaks_list, troughs_list, exh_onsets, inh_onsets, start, end)
+
 
 if __name__ == "__main__":
 
