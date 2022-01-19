@@ -1,6 +1,6 @@
 
 <h1>
-PYQT to display respirary waveform data
+PYQT to display respiratory waveform data
 </h1>
 
 ## Description
